@@ -1,4 +1,5 @@
 Timer = require('libraries.hump.timer')
+Input = require('libraries.boipushy.Input')
 
 FPS = 30 -- frames per second, the general speed of the program
 WINDOWWIDTH = 640 -- size of window's width in pixels
@@ -10,8 +11,8 @@ BOARDWIDTH = 10 -- number of columns of icons
 BOARDHEIGHT = 7 -- number of rows of icons
 assert((BOARDWIDTH * BOARDHEIGHT) % 2 == 0, 'Board needs to have an even number of boxes for pairs of matches.')
 
-XMARGIN = math.floor((WINDOWWIDTH - (BOARDWIDTH * (BOXSIZE + GAPSIZE))) / 2)
-YMARGIN = math.floor((WINDOWHEIGHT - (BOARDHEIGHT * (BOXSIZE + GAPSIZE))) / 2)
+XMARGIN = 20 --math.floor((WINDOWWIDTH - (BOARDWIDTH * (BOXSIZE + GAPSIZE))) / 2)
+YMARGIN = 20 --math.floor((WINDOWHEIGHT - (BOARDHEIGHT * (BOXSIZE + GAPSIZE))) / 2)
 
 --            R    G    B
 GRAY     = {.39, .39, .39}--(100, 100, 100)
@@ -39,29 +40,84 @@ OVAL = 'oval'
 
 ALLCOLORS = {RED, GREEN, BLUE, YELLOW, ORANGE, PURPLE, CYAN}
 ALLSHAPES = {DONUT, SQUARE, DIAMOND, LINES, OVAL}
-ANIM_TIME = 1.0
+ANIM_TIME = 0.25
 assert(#ALLCOLORS * #ALLSHAPES * 2 >= BOARDWIDTH * BOARDHEIGHT, 'Board is too big for the number of shapes/colors defined.')
 
 local EASING_TYPE = 'in-out-quad'
 
-activeTiles = {pos = {}, x = 1, y = 1, coveredRectW = BOXSIZE, index = 1}
+activeTiles = {pos = {}, x = -1, y = -1, coveredRectW = BOXSIZE, index = 1, activated = false}
+isHighlighted = false
+highlightedBoxX = 0
+highlightedBoxY = 0
+helpTile = {x = 0, y = 0}
 
 function love.load()
+    love.window.setTitle("LOVE Memory Puzzle")
+    love.window.setMode( WINDOWWIDTH, WINDOWHEIGHT )
     mainBoard = getRandomizedBoard()
     revealedBoxes = generateRevealedBoxesData(false)
     mousePos = {x = 0, y = 0}
     firstSelection = nil
     timer = Timer()
+    input = Input()
+    input:bind('mouse1', 'leftButton')
+    input:bind('escape', 'quit')
+    input:bind('a', 'revealAll')
     startGameAnimation()
 end
 
 function love.update(dt)
+    local mouseClicked = false
     timer:update(dt)
+    if input:released('quit') then
+        love.event.quit()
+    elseif input:released('revealAll') then
+        revealedBoxes = generateRevealedBoxesData(true)
+    elseif input:released('leftButton') and not activeTiles.activated then
+        local x, y = love.mouse.getPosition()
+        mousePos.x = x
+        mousePos.y = y
+        mouseClicked = true
+    end
+
+    local boxx, boxy = getBoxAtPixel()
+    if boxx ~= nil and boxy ~= nil then
+        if not revealedBoxes[boxx][boxy] then
+            isHighlighted = true
+            highlightedBoxX = boxx
+            highlightedBoxY = boxy
+        end
+        if not revealedBoxes[boxx][boxy] and mouseClicked then
+            revealedBoxes[boxx][boxy] = true -- set the box as "revealed"
+            if firstSelection == nil then -- the current box was the first box clicked
+                firstSelection = {boxx, boxy}
+            else
+                icon1shape, icon1color = getShapeAndColor(firstSelection[1], firstSelection[2])
+                icon2shape, icon2color = getShapeAndColor(boxx, boxy)
+                if icon1shape ~= icon2shape or icon1color ~= icon2color then
+                    activeTiles.activated = true
+                    helpTile.x = firstSelection[1]
+                    helpTile.y = firstSelection[2]
+                    timer:after(0.5, function()
+                        revealedBoxes[helpTile.x][helpTile.y] = false
+                        revealedBoxes[boxx][boxy] = false
+                        activeTiles.activated = false
+                        firstSelection = nil
+                    end)
+                end
+                firstSelection = nil
+            end
+        end
+    else
+        isHighlighted = false
+    end
 end
 
 function love.draw()
+    if isHighlighted then
+        drawHighlightBox()
+    end
     drawBoard()
-    drawActiveTiles()
 end
 
 function getRandomizedBoard()
@@ -166,7 +222,7 @@ function drawBoard()
     for boxx = 1, BOARDWIDTH do
         for boxy = 1, BOARDHEIGHT do
             local left, top = leftTopCoordsOfBox(boxx, boxy)
-            if isInAnimTiles(boxx, boxy) then
+            if isInAnimTiles(boxx, boxy) or (activeTiles.x == boxx and activeTiles.y == boxy) then
                 -- Draw the (revealed) icon.
                 local shape, color = getShapeAndColor(boxx, boxy)
                 drawIcon(shape, color, boxx, boxy)
@@ -217,6 +273,7 @@ function startGameAnimation()
         table.insert(activeTiles.pos[index], boxes[i]) 
     end
 
+    activeTiles.activated = true
     for i = 1, animElements do
         timer:after(ANIM_TIME*i, function()
             timer:tween(ANIM_TIME, activeTiles, { coveredRectW = 0}, EASING_TYPE)
@@ -226,20 +283,13 @@ function startGameAnimation()
         end)
     end
 
-    timer:after(2*ANIM_TIME*animElements+ANIM_TIME/2, function() activeTiles.index = 1  end)
-end
-
-function drawActiveTiles()
-    love.graphics.setColor(BOXCOLOR)
-    for i = 1, #activeTiles.pos[activeTiles.index] do
-
-    end
-    --local left, top = leftTopCoordsOfBox(activeTiles.x, activeTiles.y)
-    --love.graphics.rectangle("fill", left, top, activeTiles.coveredRectW, BOXSIZE)
-    love.graphics.setColor(1, 1, 1)
+    timer:after(2*ANIM_TIME*animElements+ANIM_TIME/2, function() activeTiles.index = -1 activeTiles.pos = nil activeTiles.activated = false end)
 end
 
 function isInAnimTiles(boxx, boxy)
+    if activeTiles.index <= 0 then
+        return false
+    end
     for _, box in ipairs(activeTiles.pos[activeTiles.index]) do
         local x, y = unpack(box)
         if x == boxx and y == boxy then
@@ -247,4 +297,24 @@ function isInAnimTiles(boxx, boxy)
         end
     end
     return false
+end
+
+function getBoxAtPixel()
+    for boxx = 1, BOARDWIDTH do
+        for boxy = 1, BOARDHEIGHT do
+            local left, top = leftTopCoordsOfBox(boxx, boxy)
+            if mousePos.x > left and mousePos.x < left + BOXSIZE and mousePos.y > top and mousePos.y < top + BOXSIZE then
+                return boxx, boxy
+            end
+        end
+    end
+
+    return nil, nil 
+end
+
+function drawHighlightBox()
+    local left, top = leftTopCoordsOfBox(highlightedBoxX, highlightedBoxY)
+    love.graphics.setColor(HIGHLIGHTCOLOR)
+    love.graphics.rectangle('line', left - 5, top - 5, BOXSIZE + 10, BOXSIZE + 10, 4, 4)
+    love.graphics.setColor(1, 1, 1)
 end
