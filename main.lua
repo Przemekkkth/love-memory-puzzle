@@ -51,6 +51,9 @@ highlightedBoxX = 0
 highlightedBoxY = 0
 helpTile = {x = 0, y = 0}
 
+GAME_FONT = love.graphics.newFont('assets/fonts/Early GameBoy.ttf', 30)
+moveCounter = 0
+
 function love.load()
     love.window.setTitle("LOVE Memory Puzzle")
     love.window.setMode( WINDOWWIDTH, WINDOWHEIGHT )
@@ -63,6 +66,7 @@ function love.load()
     input:bind('mouse1', 'leftButton')
     input:bind('escape', 'quit')
     input:bind('a', 'revealAll')
+    love.graphics.setBackgroundColor( BGCOLOR )
     startGameAnimation()
 end
 
@@ -89,6 +93,7 @@ function love.update(dt)
         end
         if not revealedBoxes[boxx][boxy] and mouseClicked then
             revealedBoxes[boxx][boxy] = true -- set the box as "revealed"
+            moveCounter = moveCounter + 1
             if firstSelection == nil then -- the current box was the first box clicked
                 firstSelection = {boxx, boxy}
             else
@@ -118,6 +123,8 @@ function love.draw()
         drawHighlightBox()
     end
     drawBoard()
+    drawTitle()
+    drawMovementText()
 end
 
 function getRandomizedBoard()
@@ -317,4 +324,26 @@ function drawHighlightBox()
     love.graphics.setColor(HIGHLIGHTCOLOR)
     love.graphics.rectangle('line', left - 5, top - 5, BOXSIZE + 10, BOXSIZE + 10, 4, 4)
     love.graphics.setColor(1, 1, 1)
+end
+
+function drawTitle()
+    love.graphics.setFont(GAME_FONT)
+    love.graphics.setColor(WHITE)
+    local text = "Memory Puzzle"
+    local font = love.graphics.getFont()
+    local textWidth = font:getWidth(text)
+    local textHeight = font:getHeight()
+    love.graphics.print(text, WINDOWWIDTH/2, 0, 0, 1, 1, textWidth/2, 0)
+    love.graphics.setColor(1,1,1)
+end
+
+function drawMovementText()
+    love.graphics.setFont(GAME_FONT)
+    love.graphics.setColor(WHITE)
+    local text = "Movements : "..tostring(moveCounter)
+    local font = love.graphics.getFont()
+    local textWidth = font:getWidth(text)
+    local textHeight = font:getHeight()
+    love.graphics.print(text, WINDOWWIDTH/2, WINDOWHEIGHT - textHeight, 0, 1, 1, textWidth/2, 0)
+    love.graphics.setColor(1,1,1)
 end
