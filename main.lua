@@ -79,6 +79,10 @@ function love.load()
             table.insert(Items, structure)
         end
     end
+
+    local cursorImage = love.mouse.newCursor('assets/sprites/cursor.png')
+    -- Ustaw niestandardowy kursor
+    love.mouse.setCursor(cursorImage, 0, 0)
 end
 
 function love.update(dt)
