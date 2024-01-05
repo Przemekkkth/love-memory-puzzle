@@ -32,16 +32,16 @@ LIGHTBGCOLOR = GRAY
 BOXCOLOR = WHITE
 HIGHLIGHTCOLOR = BLUE
 
-DONUT = 'donut'
-SQUARE = 'square'
-DIAMOND = 'diamond'
-LINES = 'lines'
-OVAL = 'oval'
+DONUT = 1
+SQUARE = 2
+DIAMOND = 3
+LINES = 4
+OVAL = 5
 
-ALLCOLORS = {RED, GREEN, BLUE, YELLOW, ORANGE, PURPLE, CYAN}
-ALLSHAPES = {DONUT, SQUARE, DIAMOND, LINES, OVAL}
+ALL_Y = {0, 1, 2, 3, 4, 5, 6}
+ALL_X = {0, 1, 2, 3, 4}
 ANIM_TIME = 0.25
-assert(#ALLCOLORS * #ALLSHAPES * 2 >= BOARDWIDTH * BOARDHEIGHT, 'Board is too big for the number of shapes/colors defined.')
+assert(#ALL_Y * #ALL_X * 2 >= BOARDWIDTH * BOARDHEIGHT, 'Board is too big for the number of shapes/colors defined.')
 
 local EASING_TYPE = 'in-out-quad'
 
@@ -68,6 +68,17 @@ function love.load()
     input:bind('a', 'revealAll')
     love.graphics.setBackgroundColor( BGCOLOR )
     startGameAnimation()
+
+    local img_size = 40;
+    ITEMS_PNG = love.graphics.newImage('assets/sprites/items.png')
+    Items = {}
+
+    for x = 0, 4 do
+        for y = 0, 6 do
+            local structure = {x = x, y = y, image = love.graphics.newQuad(x * img_size, y * img_size, img_size, img_size, ITEMS_PNG) }
+            table.insert(Items, structure)
+        end
+    end
 end
 
 function love.update(dt)
@@ -129,8 +140,8 @@ end
 
 function getRandomizedBoard()
     local icons = {}
-    for _, color in pairs(ALLCOLORS) do
-        for _, shape in pairs(ALLSHAPES) do
+    for _, color in pairs(ALL_Y) do
+        for _, shape in pairs(ALL_X) do
             table.insert(icons, {shape, color})
         end
     end
@@ -194,33 +205,12 @@ function getShapeAndColor(boxx, boxy)
 end
 
 function drawIcon(shape, color, boxx, boxy)
-    local quarter = math.floor(BOXSIZE * 0.25)
-    local half    = math.floor(BOXSIZE * 0.5)
-
     local left, top = leftTopCoordsOfBox(boxx, boxy)
-
-    if shape == DONUT then
-        love.graphics.setColor(color)
-        love.graphics.circle("fill", left + half, top + half, half - 5, 100) 
-        love.graphics.setColor(BGCOLOR)
-        love.graphics.circle("fill", left + half, top + half, quarter - 5, 100) 
-    elseif shape == SQUARE then
-        love.graphics.setColor(color)
-        love.graphics.rectangle("fill", left + quarter, top + quarter, BOXSIZE - half, BOXSIZE - half) 
-    elseif shape == DIAMOND then
-        love.graphics.setColor(color)
-        love.graphics.polygon("fill", left+half,top, left+BOXSIZE-1,top+half, left+half,top+BOXSIZE-1, left,top+half)
-    elseif shape == LINES then
-        love.graphics.setColor(color)
-        for i = 0, 3 do
-            love.graphics.line(left, top + i, left + i, top)
-            love.graphics.line(left + i, top + BOXSIZE, left + BOXSIZE - 1, top + i)
+    for _, structure in pairs(Items) do
+        if structure.x == shape and structure.y == color then
+            love.graphics.draw(ITEMS_PNG, structure.image, left, top)
         end
-    elseif shape == OVAL then
-        love.graphics.setColor(color)
-        love.graphics.ellipse("fill", left + half, top + half, half, half/2, 100)
     end
-
     love.graphics.setColor(1,1,1)
 end
 
@@ -242,7 +232,6 @@ function drawBoard()
             elseif true then
                 -- Draw the (revealed) icon.
                 local shape, color = getShapeAndColor(boxx, boxy)
-                --print("shape ", shape, " color ",color)
                 drawIcon(shape, color, boxx, boxy)
             end
         end
