@@ -83,6 +83,10 @@ function love.load()
     local cursorImage = love.mouse.newCursor('assets/sprites/cursor.png')
     -- Ustaw niestandardowy kursor
     love.mouse.setCursor(cursorImage, 0, 0)
+
+    sounds = {}
+    sounds.pickUpSFX = love.audio.newSource("assets/sounds/pick_up.ogg", "static")
+    sounds.pickUpSFX:setVolume(0.5)
 end
 
 function love.update(dt)
@@ -124,6 +128,8 @@ function love.update(dt)
                         activeTiles.activated = false
                         firstSelection = nil
                     end)
+                else
+                    sounds.pickUpSFX:play()
                 end
                 firstSelection = nil
             end
