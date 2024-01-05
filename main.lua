@@ -142,6 +142,109 @@ function love.draw()
     drawMovementText()
 end
 
+function drawBoard()
+    -- Draws all of the boxes in their covered or revealed state.
+    for boxx = 1, BOARDWIDTH do
+        for boxy = 1, BOARDHEIGHT do
+            local left, top = leftTopCoordsOfBox(boxx, boxy)
+            if isInAnimTiles(boxx, boxy) or (activeTiles.x == boxx and activeTiles.y == boxy) then
+                -- Draw the (revealed) icon.
+                local shape, color = getShapeAndColor(boxx, boxy)
+                drawIcon(shape, color, boxx, boxy)
+                local left, top = leftTopCoordsOfBox(boxx, boxy)
+                love.graphics.rectangle("fill", left, top, activeTiles.coveredRectW, BOXSIZE)
+            elseif not revealedBoxes[boxx][boxy] then
+                -- Draw a covered box.
+                love.graphics.setColor(BOXCOLOR)
+                love.graphics.rectangle("fill", left, top, BOXSIZE, BOXSIZE)
+            elseif true then
+                -- Draw the (revealed) icon.
+                local shape, color = getShapeAndColor(boxx, boxy)
+                drawIcon(shape, color, boxx, boxy)
+            end
+        end
+    end
+    love.graphics.setColor(1, 1, 1)
+end
+
+function drawHighlightBox()
+    local left, top = leftTopCoordsOfBox(highlightedBoxX, highlightedBoxY)
+    love.graphics.setColor(HIGHLIGHTCOLOR)
+    love.graphics.rectangle('line', left - 5, top - 5, BOXSIZE + 10, BOXSIZE + 10, 4, 4)
+    love.graphics.setColor(1, 1, 1)
+end
+
+function drawIcon(shape, color, boxx, boxy)
+    local left, top = leftTopCoordsOfBox(boxx, boxy)
+    for _, structure in pairs(Items) do
+        if structure.x == shape and structure.y == color then
+            love.graphics.draw(ITEMS_PNG, structure.image, left, top)
+        end
+    end
+    love.graphics.setColor(1,1,1)
+end
+
+function drawMovementText()
+    love.graphics.setFont(GAME_FONT)
+    love.graphics.setColor(WHITE)
+    local text = "Movements : "..tostring(moveCounter)
+    local font = love.graphics.getFont()
+    local textWidth = font:getWidth(text)
+    local textHeight = font:getHeight()
+    love.graphics.print(text, WINDOWWIDTH/2, WINDOWHEIGHT - textHeight, 0, 1, 1, textWidth/2, 0)
+    love.graphics.setColor(1,1,1)
+end
+
+function drawTitle()
+    love.graphics.setFont(GAME_FONT)
+    love.graphics.setColor(WHITE)
+    local text = "Memory Puzzle"
+    local font = love.graphics.getFont()
+    local textWidth = font:getWidth(text)
+    local textHeight = font:getHeight()
+    love.graphics.print(text, WINDOWWIDTH/2, 0, 0, 1, 1, textWidth/2, 0)
+    love.graphics.setColor(1,1,1)
+end
+
+function isInAnimTiles(boxx, boxy)
+    if activeTiles.index <= 0 then
+        return false
+    end
+    for _, box in ipairs(activeTiles.pos[activeTiles.index]) do
+        local x, y = unpack(box)
+        if x == boxx and y == boxy then
+            return true
+        end
+    end
+    return false
+end
+
+function generateRevealedBoxesData(val)
+    local revealedBoxes = {}
+    for i = 1, BOARDWIDTH do
+        local column = {}
+        for j = 1, BOARDHEIGHT do
+           table.insert(column, val) 
+        end
+        table.insert(revealedBoxes, column)
+    end
+
+    return revealedBoxes
+end
+
+function getBoxAtPixel()
+    for boxx = 1, BOARDWIDTH do
+        for boxy = 1, BOARDHEIGHT do
+            local left, top = leftTopCoordsOfBox(boxx, boxy)
+            if mousePos.x > left and mousePos.x < left + BOXSIZE and mousePos.y > top and mousePos.y < top + BOXSIZE then
+                return boxx, boxy
+            end
+        end
+    end
+
+    return nil, nil 
+end
+
 function getRandomizedBoard()
     local icons = {}
     for _, color in pairs(ALL_Y) do
@@ -182,17 +285,10 @@ function getRandomizedBoard()
         return board
 end
 
-function generateRevealedBoxesData(val)
-    local revealedBoxes = {}
-    for i = 1, BOARDWIDTH do
-        local column = {}
-        for j = 1, BOARDHEIGHT do
-           table.insert(column, val) 
-        end
-        table.insert(revealedBoxes, column)
-    end
-
-    return revealedBoxes
+function getShapeAndColor(boxx, boxy)
+    -- shape value for x, y spot is stored in board[x][y][0]
+    -- color value for x, y spot is stored in board[x][y][1]
+    return mainBoard[boxx][boxy][1], mainBoard[boxx][boxy][2]
 end
 
 function leftTopCoordsOfBox(boxx, boxy)
@@ -200,47 +296,6 @@ function leftTopCoordsOfBox(boxx, boxy)
     left = boxx * (BOXSIZE + GAPSIZE) + XMARGIN
     top = boxy * (BOXSIZE + GAPSIZE) + YMARGIN
     return left, top
-end
-
-function getShapeAndColor(boxx, boxy)
-    -- shape value for x, y spot is stored in board[x][y][0]
-    -- color value for x, y spot is stored in board[x][y][1]
-    return mainBoard[boxx][boxy][1], mainBoard[boxx][boxy][2]
-end
-
-function drawIcon(shape, color, boxx, boxy)
-    local left, top = leftTopCoordsOfBox(boxx, boxy)
-    for _, structure in pairs(Items) do
-        if structure.x == shape and structure.y == color then
-            love.graphics.draw(ITEMS_PNG, structure.image, left, top)
-        end
-    end
-    love.graphics.setColor(1,1,1)
-end
-
-function drawBoard()
-    -- Draws all of the boxes in their covered or revealed state.
-    for boxx = 1, BOARDWIDTH do
-        for boxy = 1, BOARDHEIGHT do
-            local left, top = leftTopCoordsOfBox(boxx, boxy)
-            if isInAnimTiles(boxx, boxy) or (activeTiles.x == boxx and activeTiles.y == boxy) then
-                -- Draw the (revealed) icon.
-                local shape, color = getShapeAndColor(boxx, boxy)
-                drawIcon(shape, color, boxx, boxy)
-                local left, top = leftTopCoordsOfBox(boxx, boxy)
-                love.graphics.rectangle("fill", left, top, activeTiles.coveredRectW, BOXSIZE)
-            elseif not revealedBoxes[boxx][boxy] then
-                -- Draw a covered box.
-                love.graphics.setColor(BOXCOLOR)
-                love.graphics.rectangle("fill", left, top, BOXSIZE, BOXSIZE)
-            elseif true then
-                -- Draw the (revealed) icon.
-                local shape, color = getShapeAndColor(boxx, boxy)
-                drawIcon(shape, color, boxx, boxy)
-            end
-        end
-    end
-    love.graphics.setColor(1, 1, 1)
 end
 
 function startGameAnimation()
@@ -284,59 +339,4 @@ function startGameAnimation()
     end
 
     timer:after(2*ANIM_TIME*animElements+ANIM_TIME/2, function() activeTiles.index = -1 activeTiles.pos = nil activeTiles.activated = false end)
-end
-
-function isInAnimTiles(boxx, boxy)
-    if activeTiles.index <= 0 then
-        return false
-    end
-    for _, box in ipairs(activeTiles.pos[activeTiles.index]) do
-        local x, y = unpack(box)
-        if x == boxx and y == boxy then
-            return true
-        end
-    end
-    return false
-end
-
-function getBoxAtPixel()
-    for boxx = 1, BOARDWIDTH do
-        for boxy = 1, BOARDHEIGHT do
-            local left, top = leftTopCoordsOfBox(boxx, boxy)
-            if mousePos.x > left and mousePos.x < left + BOXSIZE and mousePos.y > top and mousePos.y < top + BOXSIZE then
-                return boxx, boxy
-            end
-        end
-    end
-
-    return nil, nil 
-end
-
-function drawHighlightBox()
-    local left, top = leftTopCoordsOfBox(highlightedBoxX, highlightedBoxY)
-    love.graphics.setColor(HIGHLIGHTCOLOR)
-    love.graphics.rectangle('line', left - 5, top - 5, BOXSIZE + 10, BOXSIZE + 10, 4, 4)
-    love.graphics.setColor(1, 1, 1)
-end
-
-function drawTitle()
-    love.graphics.setFont(GAME_FONT)
-    love.graphics.setColor(WHITE)
-    local text = "Memory Puzzle"
-    local font = love.graphics.getFont()
-    local textWidth = font:getWidth(text)
-    local textHeight = font:getHeight()
-    love.graphics.print(text, WINDOWWIDTH/2, 0, 0, 1, 1, textWidth/2, 0)
-    love.graphics.setColor(1,1,1)
-end
-
-function drawMovementText()
-    love.graphics.setFont(GAME_FONT)
-    love.graphics.setColor(WHITE)
-    local text = "Movements : "..tostring(moveCounter)
-    local font = love.graphics.getFont()
-    local textWidth = font:getWidth(text)
-    local textHeight = font:getHeight()
-    love.graphics.print(text, WINDOWWIDTH/2, WINDOWHEIGHT - textHeight, 0, 1, 1, textWidth/2, 0)
-    love.graphics.setColor(1,1,1)
 end
