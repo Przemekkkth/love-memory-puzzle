@@ -65,7 +65,6 @@ function love.load()
     input = Input()
     input:bind('mouse1', 'leftButton')
     input:bind('escape', 'quit')
-    --input:bind('a', 'revealAll')
     love.graphics.setBackgroundColor( BGCOLOR )
     startGameAnimation()
 
@@ -95,8 +94,6 @@ function love.update(dt)
     timer:update(dt)
     if input:released('quit') then
         love.event.quit()
-    elseif input:released('revealAll') then
-        revealedBoxes = generateRevealedBoxesData(true)
     elseif input:released('leftButton') and not activeTiles.activated then
         local x, y = love.mouse.getPosition()
         mousePos.x = x
