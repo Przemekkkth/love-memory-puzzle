@@ -11,8 +11,8 @@ BOARDWIDTH = 10 -- number of columns of icons
 BOARDHEIGHT = 7 -- number of rows of icons
 assert((BOARDWIDTH * BOARDHEIGHT) % 2 == 0, 'Board needs to have an even number of boxes for pairs of matches.')
 
-XMARGIN = 20 --math.floor((WINDOWWIDTH - (BOARDWIDTH * (BOXSIZE + GAPSIZE))) / 2)
-YMARGIN = 20 --math.floor((WINDOWHEIGHT - (BOARDHEIGHT * (BOXSIZE + GAPSIZE))) / 2)
+XMARGIN = 20 
+YMARGIN = 20 
 
 --            R    G    B
 GRAY     = {.39, .39, .39}--(100, 100, 100)
@@ -65,7 +65,7 @@ function love.load()
     input = Input()
     input:bind('mouse1', 'leftButton')
     input:bind('escape', 'quit')
-    input:bind('a', 'revealAll')
+    --input:bind('a', 'revealAll')
     love.graphics.setBackgroundColor( BGCOLOR )
     startGameAnimation()
 
@@ -81,12 +81,13 @@ function love.load()
     end
 
     local cursorImage = love.mouse.newCursor('assets/sprites/cursor.png')
-    -- Ustaw niestandardowy kursor
     love.mouse.setCursor(cursorImage, 0, 0)
 
     sounds = {}
     sounds.pickUpSFX = love.audio.newSource("assets/sounds/pick_up.ogg", "static")
     sounds.pickUpSFX:setVolume(0.5)
+
+    --printBoard()
 end
 
 function love.update(dt)
@@ -345,4 +346,14 @@ function startGameAnimation()
     end
 
     timer:after(2*ANIM_TIME*animElements+ANIM_TIME/2, function() activeTiles.index = -1 activeTiles.pos = nil activeTiles.activated = false end)
+end
+
+function printBoard()
+    for x = 1, BOARDWIDTH do
+        local text = ''
+        for y = 1, BOARDHEIGHT do
+            text = text..' ('..tostring(x)..','..tostring(y)..')=>['..tostring(mainBoard[x][y][1])..','..tostring(mainBoard[x][y][2])..'] '
+        end
+        print(text)
+    end
 end
